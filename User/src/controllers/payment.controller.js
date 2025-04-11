@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Order } from "../models/order.model.js";
 import Stripe from "stripe";
 import { Payment } from "../models/payment.model.js";
+import { Invoice } from "../models/invoice.model.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET);
 
@@ -100,6 +101,39 @@ const webhookHandler = asyncHandler(async (req, res) => {
 
     await payment.save();
     // console.log(payment);
+
+
+    if(payment){
+      const invoiceNumber = `INV-${Date.now()}`;
+      const invoice = new Invoice({
+        user:userId,
+        payment:payment._id,
+        order:payment.order,
+        invoiceNumber,
+        items:order.orderItems.map(item => ({
+          product: {
+              id:item.product.id,
+              title:item.product.title,
+              imageUrl:item.product.imageUrl,
+              price:item.product.price,
+            },
+          quantity: item.quantity,
+          price: item.price,
+          totalPrice: item.price * item.quantity,
+        })),
+        totalAmount:order.totalAmount,
+        billingAddress:{
+          fullName:order.userInfo.firstName,
+          address:order.userInfo.streetAddress,
+          city:order.userInfo.city
+        },
+  
+  
+      })
+
+      await invoice.save();
+    }
+    
 
     order.paymentStatus = "Paid";
     order.orderStatus = "Processing";
