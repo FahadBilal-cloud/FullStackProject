@@ -7,10 +7,15 @@ import { ApiResponse } from "./utils/ApiResponse.js";
 import { ApiError } from "./utils/ApiError.js";
 import cron from 'node-cron';
 import { User } from "./models/user.model.js";
+import { webhookHandler } from "./controllers/payment.controller.js"
+
 
 
 
 const app = express();
+app.post("/webhook", express.raw({ type: "application/json" }), webhookHandler);
+
+
 
 app.use(session({
   secret: process.env.SESSION_SECRET || "supersecretkey",
@@ -33,6 +38,8 @@ app.use(cors({
 }));
 
 app.use(cookieParser());
+
+
 
 app.get(
   "/auth/google",
@@ -97,7 +104,6 @@ app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/cart",cartRoute)
 app.use("/api/v1/order",orderRoute)
 app.use("/api/v1/payment",paymentRoute)
-
 
 
 app.get("/", (req, res) => {
