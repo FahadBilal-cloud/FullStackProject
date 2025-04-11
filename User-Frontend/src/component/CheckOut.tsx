@@ -12,6 +12,7 @@ import { clearCart } from "../store/cartSlice";
 import axios from "axios";
 import { loadStripe } from "@stripe/stripe-js";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const CheckOut: React.FC = () => {
   const { cart } = useSelector((state: RootState) => state.cart);
@@ -19,6 +20,7 @@ const CheckOut: React.FC = () => {
   // console.log(cartItems);
   const dispatch = useDispatch<AppDispatch>();
   const token = JSON.parse(localStorage.getItem("token")!);
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -43,44 +45,51 @@ const CheckOut: React.FC = () => {
       paymentMethod,
       saveInfo,
     };
-  
+
+    // 1. Place Order
+    const result = await dispatch(
+      placeOrderThunk({ token, orderData: orderDetails })
+    ).unwrap();
+
+    const orderId = result.data._id;
+    const pM = result.data.paymentMethod;
+    dispatch(clearCart());
+
     try {
-      // 1. Place Order
-      const result = await dispatch(
-        placeOrderThunk({ token, orderData: orderDetails })
-      ).unwrap();
-  
-      const orderId = result.data._id;
-      dispatch(clearCart());
-  
-      // 2. Load Stripe
-      const stripe = await loadStripe(
-        "pk_test_51RBv0sQq20yp6LjMjvKYTw2JTfiBIk1xfJF9RlSIc7EUgKG3xcnxettlef0DfomrVFLwUzHNrCz563qN08dUJHtq00MPkeBDjN"
-      );
-  
-      if (!stripe) {
-        toast.error("Stripe failed to load");
-        return;
-      }
-  
-      // 3. Create Payment Session
-      const paymentResponse = await axios.post(
-        "http://localhost:8000/api/v1/payment/make", // ✅ use HTTP in local dev
-        { orderId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      if (pM === "Cash on delivery") {
+        navigate("/success");
+      } else {
+        // 2. Load Stripe
+        const stripe = await loadStripe(
+          "pk_test_51RBv0sQq20yp6LjMjvKYTw2JTfiBIk1xfJF9RlSIc7EUgKG3xcnxettlef0DfomrVFLwUzHNrCz563qN08dUJHtq00MPkeBDjN"
+        );
+
+        if (!stripe) {
+          toast.error("Stripe failed to load");
+          return;
         }
-      );
-  
-      const { id } = paymentResponse.data.data;
-  
-      // 4. Redirect to Stripe Checkout
-      await stripe.redirectToCheckout({ sessionId: id });
+
+        // 3. Create Payment Session
+        const paymentResponse = await axios.post(
+          "http://localhost:8000/api/v1/payment/make",
+          { orderId },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const { id } = paymentResponse.data.data;
+
+        // 4. Redirect to Stripe Checkout
+        await stripe.redirectToCheckout({ sessionId: id });
+      }
     } catch (error: any) {
       const message =
-        error?.response?.data?.message || error.message || "Something went wrong";
+        error?.response?.data?.message ||
+        error.message ||
+        "Something went wrong";
       toast.error(message);
     } finally {
       // 5. Reset form state
@@ -96,7 +105,6 @@ const CheckOut: React.FC = () => {
       setSaveInfo(false);
     }
   };
-  
 
   return (
     <div className="md:px-24 sm:px-8 px-4 py-20">

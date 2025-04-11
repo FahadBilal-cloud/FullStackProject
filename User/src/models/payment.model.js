@@ -13,7 +13,7 @@ const paymentSchema = new mongoose.Schema(
     },
     paymentGateway: {
       type: String,
-      enum: ["Stripe", "Razorpay", "PayPal", "UPI", "Credit Card"],
+      enum: ["Stripe", "Razorpay", "PayPal", "UPI", "Credit Card","COD"],
       required: true,
     },
     transactionId: {

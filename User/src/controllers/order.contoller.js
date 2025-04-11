@@ -1,65 +1,132 @@
 import { Cart } from "../models/cart.mode.js";
+import { Invoice } from "../models/invoice.model.js";
 import { Order } from "../models/order.model.js";
+import { Payment } from "../models/payment.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 // Controller for placing an order (Checkout)
-const placeOrder = asyncHandler( async (req, res) => {
-    const userId = req.user._id;
-    
-    // Fetch cart data
-    const cart = await Cart.findOne({ user: userId });
-    // console.log(cart);
-    
+const placeOrder = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
 
-    if (!cart || cart.items.length === 0) {
-      throw new ApiError(400,"Cart is empty!")
-    }
-    const {orderData} = req.body
-    const { firstName, streetAddress, apartment, city, phoneNo, emailAddress, saveInfo, paymentMethod } = orderData;
-    if (
-      [firstName, streetAddress, apartment, city, phoneNo, emailAddress, saveInfo, paymentMethod].some(
-        (field) => field === ""
-      )
-    ) {
-      throw new ApiError(400, "All fields are required");
-    }
+  // Fetch cart data
+  const cart = await Cart.findOne({ user: userId });
+  // console.log(cart);
 
-    const order = new Order({
-      user: userId,
-      orderItems: cart.items.map(item => ({
-        product: {
-            id:item.product.id,
-            title:item.product.title,
-            imageUrl:item.product.imageUrl,
-            price:item.product.price,
-          },
-        quantity: item.quantity,
-        price: item.price,
-        totalPrice: item.price * item.quantity,
-      })),
-      totalAmount: cart.totalAmount,
+  if (!cart || cart.items.length === 0) {
+    throw new ApiError(400, "Cart is empty!");
+  }
+  const { orderData } = req.body;
+  const {
+    firstName,
+    streetAddress,
+    apartment,
+    city,
+    phoneNo,
+    emailAddress,
+    saveInfo,
+    paymentMethod,
+  } = orderData;
+  if (
+    [
+      firstName,
+      streetAddress,
+      apartment,
+      city,
+      phoneNo,
+      emailAddress,
+      saveInfo,
       paymentMethod,
-      orderStatus: "Processing",
-      userInfo: {
-        firstName,
-        streetAddress,
-        apartment,
-        city,
-        phoneNo,
-        emailAddress,
-        saveInfo,
+    ].some((field) => field === "")
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  let orderStatus;
+  if ((paymentMethod === "Cash on delivery")) {
+    orderStatus = "Shipped";
+  } else {
+    orderStatus = "Processing";
+  }
+
+  const order = new Order({
+    user: userId,
+    orderItems: cart.items.map((item) => ({
+      product: {
+        id: item.product.id,
+        title: item.product.title,
+        imageUrl: item.product.imageUrl,
+        price: item.product.price,
       },
+      quantity: item.quantity,
+      price: item.price,
+      totalPrice: item.price * item.quantity,
+    })),
+    totalAmount: cart.totalAmount,
+    paymentMethod,
+    orderStatus,
+    userInfo: {
+      firstName,
+      streetAddress,
+      apartment,
+      city,
+      phoneNo,
+      emailAddress,
+      saveInfo,
+    },
+  });
+
+  await order.save();
+
+  if ((order.paymentMethod === "Cash on delivery")) {
+    const payment = new Payment({
+      user: userId,
+      order: order._id,
+      transactionId: `COD${Date.now()}`,
+      amountPaid: 0,
+      paymentGateway: "COD",
+      currency: "PKR",
     });
 
-    await order.save();
+    await payment.save();
+    // console.log(payment);
 
-    await Cart.findOneAndDelete({ user: userId });
+    if (payment) {
+      const invoiceNumber = `INV-${Date.now()}`;
+      const invoice = new Invoice({
+        user: userId,
+        payment: payment._id,
+        order: payment.order,
+        invoiceNumber,
+        items: order.orderItems.map((item) => ({
+          product: {
+            id: item.product.id,
+            title: item.product.title,
+            imageUrl: item.product.imageUrl,
+            price: item.product.price,
+          },
+          quantity: item.quantity,
+          price: item.price,
+          totalPrice: item.price * item.quantity,
+        })),
+        totalAmount: order.totalAmount,
+        billingAddress: {
+          fullName: order.userInfo.firstName,
+          address: order.userInfo.streetAddress,
+          city: order.userInfo.city,
+        },
+      });
 
-    return res
+      await invoice.save();
+    }
+  }
+
+  await Cart.findOneAndDelete({ user: userId });
+
+  return res
     .status(200)
-    .json(new ApiResponse(200,order,"Order placed Sucessfully"))
+    .json(new ApiResponse(200, order, "Order placed Sucessfully"));
 });
 
 // export const getOrderById = async (req, res) => {
@@ -110,7 +177,6 @@ const placeOrder = asyncHandler( async (req, res) => {
 //   }
 // };
 
-
 // export const getUserOrders = async (req, res) => {
 //   try {
 //     const userId = req.user._id;
@@ -128,5 +194,4 @@ const placeOrder = asyncHandler( async (req, res) => {
 //   }
 // };
 
-
-export {placeOrder}
+export { placeOrder };
