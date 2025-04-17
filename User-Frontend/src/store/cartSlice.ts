@@ -5,7 +5,7 @@ import {
   removeFromCartApi, 
   fetchCartApi 
 } from "../config/Api.config";
-import { CartResponse, ApiError, Product } from "../Types/Cart.types";
+import { CartResponse, ApiError } from "../Types/Cart.types";
 import { toast } from "react-toastify";
 
 // Async Thunks for API operations
@@ -25,13 +25,13 @@ export const fetchCart = createAsyncThunk<CartResponse, string, { rejectValue: A
   }
 );
 
-export const addItemToCart = createAsyncThunk<CartResponse, { token: string, product: Product; quantity: number }, { rejectValue: ApiError }>(
+export const addItemToCart = createAsyncThunk<CartResponse, { token: string, productId:string; quantity: number }, { rejectValue: ApiError }>(
   "cart/addItem",
-  async ({ token, product, quantity }, { rejectWithValue }) => {
+  async ({ token, productId, quantity }, { rejectWithValue }) => {
     try {
-      const data = await addToCartApi(token,product,quantity);
+      const data = await addToCartApi(token,productId,quantity);
       toast.success(data.message)
-      // console.log(data);
+       console.log(data);
       return data
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to add item to cart";

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { fetchProductsApi } from "../config/Product.config";
+import { fetchProductsApi } from "../config/Api.config";
 import { Product, ProductResponse, ApiError } from "../Types/Product.types";
 import { toast } from "react-toastify";
 

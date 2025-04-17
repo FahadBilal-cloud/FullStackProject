@@ -1,18 +1,18 @@
 import mongoose from "mongoose";
 
-const orderSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', 
-    required: true,
-  },
-  orderItems: [
-    {
+const orderSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    orderItems: [
+      {
         product: {
-          id:Number,
-          title:String,
-          imageUrl:String,
-          price:Number,
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
         },
         quantity: {
           type: Number,
@@ -27,57 +27,58 @@ const orderSchema = new mongoose.Schema({
           type: Number,
           required: true,
         },
-      }
-  ],
-  totalAmount: {
-    type: Number,
-    required: true,
-  },
-  paymentMethod: {
-    type: String,
-    required: true,
-  },
-  orderStatus: {
-    type: String,
-    enum: ['Processing', 'Shipped', 'Delivered', 'Canceled'],
-    default: 'Processing',
-  },
-  paymentStatus: {
-    type: String,
-    enum: ["Pending", "Paid", "Failed", "Refunded"],
-    default: "Pending",
-  },
-  // User information
-  userInfo: {
-    firstName: {
+      },
+    ],
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
+    paymentMethod: {
       type: String,
       required: true,
     },
-    streetAddress: {
+    orderStatus: {
       type: String,
-      required: true,
+      enum: ["Processing", "Shipped", "Delivered", "Canceled"],
+      default: "Processing",
     },
-    apartment: {
+    paymentStatus: {
       type: String,
+      enum: ["Pending", "Paid", "Failed", "Refunded"],
+      default: "Pending",
     },
-    city: {
-      type: String,
-      required: true,
+    // User information
+    userInfo: {
+      firstName: {
+        type: String,
+        required: true,
+      },
+      streetAddress: {
+        type: String,
+        required: true,
+      },
+      apartment: {
+        type: String,
+      },
+      city: {
+        type: String,
+        required: true,
+      },
+      phoneNo: {
+        type: String,
+        required: true,
+      },
+      emailAddress: {
+        type: String,
+        required: true,
+      },
+      saveInfo: {
+        type: Boolean,
+        default: false,
+      },
     },
-    phoneNo: {
-      type: String,
-      required: true,
-    },
-    emailAddress: {
-      type: String,
-      required: true,
-    },
-    saveInfo:{
-        type:Boolean,
-        default:false
-    }
   },
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-export const Order = mongoose.model('Order', orderSchema);
-
+export const Order = mongoose.model("Order", orderSchema);

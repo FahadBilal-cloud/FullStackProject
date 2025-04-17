@@ -2,9 +2,10 @@ import { Cart } from "../models/cart.mode.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+import { Product } from "../models/product.model.js";
 
 const getCart = asyncHandler(async (req, res) => {
-  const cart = await Cart.find({ user: req.user?._id })
+  const cart = await Cart.find({ user: req.user?._id });
 
   if (!cart) {
     throw new ApiError(404, "Cart Not Found");
@@ -15,12 +16,27 @@ const getCart = asyncHandler(async (req, res) => {
 });
 
 const addToCart = asyncHandler(async (req, res) => {
-  const { product, quantity } = req.body;
-  const { id, title, imageUrl, price } = product;
-  let cart = await Cart.findOne({ user: req.user._id });
+  const { productId, quantity } = req.body;
 
-  if (!cart || !cart.items) {
-    // Create new cart if it doesn't exist
+  // Validate input
+  if (!productId || !quantity || quantity <= 0) {
+    return res.status(400).json(new ApiResponse(400, null, "Invalid product or quantity"));
+  }
+
+  // Check if product exists
+  const product = await Product.findById(productId);
+  // console.log("Product",product);
+  
+  if (!product) {
+    return res.status(404).json(new ApiResponse(404, null, "Product not found"));
+  }
+
+  // Compute actual price after discount
+  const price = Math.floor(product.originalPrice - (product.originalPrice * product.discount) / 100);
+
+  // Find or create cart
+  let cart = await Cart.findOne({ user: req.user._id });
+  if (!cart) {
     cart = new Cart({
       user: req.user._id,
       items: [],
@@ -28,46 +44,63 @@ const addToCart = asyncHandler(async (req, res) => {
     });
   }
 
-//   if (!cart || !cart.items) {
-//     throw new Error("Cart not found or items are undefined");
-// }
-  // Check if item already exists in cart
-  const existingItemIndex = cart.items.findIndex(item => item.product.id === id);
-  
-
+  // Check if product already in cart
+  const existingItemIndex = cart.items.findIndex(
+    (item) => item.product.toString() === product._id.toString()
+  );
   if (existingItemIndex >= 0) {
-    // Update quantity if item exists
+    // Update quantity
     cart.items[existingItemIndex].quantity += quantity;
     cart.items[existingItemIndex].totalPrice =
-      cart.items[existingItemIndex].quantity * product.price;
+      cart.items[existingItemIndex].quantity * price;
   } else {
-    // Add new item to cart
+    // Add new product to cart
     cart.items.push({
-      product: {
-        id,
-        title,
-        imageUrl,
-        price,
-      },
+      product: product._id,
       quantity,
-      price: product.price,
-      totalPrice: quantity * product.price,
+      price,
+      totalPrice: quantity * price,
     });
   }
 
+  // Update total amount
   cart.totalAmount = cart.items.reduce((acc, item) => acc + item.totalPrice, 0);
 
   await cart.save();
+
+  await cart.populate("items.product");
+
+  // Format response to include selected product details
+  const formattedCart = {
+    _id: cart._id,
+    user: cart.user,
+    totalAmount: cart.totalAmount,
+    createdAt: cart.createdAt,
+    updatedAt: cart.updatedAt,
+    items: cart.items.map((item) => ({
+      _id: item._id,
+      quantity: item.quantity,
+      totalPrice: item.totalPrice,
+      product: {
+        _id: item.product._id,
+        name: item.product.name,
+        productUrl: item.product.productUrl[0], // assuming you want the first image
+        price: item.price,
+      },
+    })),
+  };
+
   return res
     .status(201)
-    .json(new ApiResponse(201, cart, "Product add to cart Sucessfully"));
+    .json(new ApiResponse(201, formattedCart, "Product added to cart successfully"));
 });
+
 
 const updateCartItem = asyncHandler(async (req, res) => {
   const { itemId } = req.params;
   const { quantity } = req.body;
 
-  if (quantity < 1) {
+  if (!quantity || quantity < 1) {
     throw new ApiError(400, "Quantity must be at least 1");
   }
 
@@ -90,6 +123,7 @@ const updateCartItem = asyncHandler(async (req, res) => {
   cart.items[itemIndex].totalPrice = quantity * cart.items[itemIndex].price;
 
   await cart.save();
+
   return res
     .status(200)
     .json(new ApiResponse(200, cart, "Cart updated Sucessfully"));
@@ -114,12 +148,13 @@ const removeFromCart = asyncHandler(async (req, res) => {
 
   // Remove the item from the array
   cart.items.splice(itemIndex, 1);
+  cart.totalAmount = cart.items.reduce((acc, item) => acc + item.totalPrice, 0);
+
 
   await cart.save();
   return res
     .status(200)
     .json(new ApiResponse(200, cart, "Cart removed Sucessfully"));
 });
-
 
 export { getCart, addToCart, updateCartItem, removeFromCart };

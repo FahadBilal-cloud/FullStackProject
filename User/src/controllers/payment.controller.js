@@ -58,12 +58,9 @@ const payment = asyncHandler(async (req, res) => {
 });
 
 const webhookHandler = asyncHandler(async (req, res) => {
-  // console.log("Headers",req.headers);
-
   const sig = req.headers["stripe-signature"];
-  //  console.log("Sig",sig);
-
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(
       req.body,
@@ -74,18 +71,13 @@ const webhookHandler = asyncHandler(async (req, res) => {
     throw new ApiError(400, `Webhook Error: ${err.message}`);
   }
 
-  //  console.log("Event",event);
-
   // Payment Success
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const orderId = session.metadata.orderId;
     const userId = session.metadata.userId;
 
-    //  console.log("Session",session);
-
     const order = await Order.findById(orderId);
-    // console.log(order);
 
     if (!order) throw new ApiError(404, "Order not found");
 
@@ -100,40 +92,29 @@ const webhookHandler = asyncHandler(async (req, res) => {
     });
 
     await payment.save();
-    // console.log(payment);
 
-
-    if(payment){
-      const invoiceNumber = `INV-${Date.now()}`;
+    if (payment) {
       const invoice = new Invoice({
-        user:userId,
-        payment:payment._id,
-        order:payment.order,
-        invoiceNumber,
-        items:order.orderItems.map(item => ({
-          product: {
-              id:item.product.id,
-              title:item.product.title,
-              imageUrl:item.product.imageUrl,
-              price:item.product.price,
-            },
+        user: userId,
+        payment: payment._id,
+        order: orderId,
+        invoiceNumber: `INV-${Date.now()}`,
+        items: order.orderItems.map((item) => ({
+          product: item.product._id, // This is ObjectId
           quantity: item.quantity,
           price: item.price,
-          totalPrice: item.price * item.quantity,
+          totalPrice: item.totalPrice,
         })),
-        totalAmount:order.totalAmount,
-        billingAddress:{
-          fullName:order.userInfo.firstName,
-          address:order.userInfo.streetAddress,
-          city:order.userInfo.city
+        totalAmount: order.totalAmount,
+        billingAddress: {
+          fullName: order.userInfo.firstName,
+          address: order.userInfo.streetAddress,
+          city: order.userInfo.city,
         },
-  
-  
-      })
+      });
 
       await invoice.save();
     }
-    
 
     order.paymentStatus = "Paid";
     order.orderStatus = "Processing";
@@ -144,5 +125,6 @@ const webhookHandler = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, { received: true }, "Webhook received"));
 });
+
 
 export { payment, webhookHandler };

@@ -10,23 +10,19 @@ export interface Cart{
   user: string;
   items: Item[];
   totalAmount: number;
-  createdAt: string;  // ISO date string
-  updatedAt: string;  // ISO date string
-  __v: number;
 }
 
 export interface Item{
     product: Product
-      price: number;
       quantity: number;
       totalPrice: number;
       _id: string;
 }
 
 export interface Product{
-    id:number,
-    title:string,
-    imageUrl:string,
+    _id:string,
+    name:string,
+    productUrl:string,
     price:number | null
 }
 

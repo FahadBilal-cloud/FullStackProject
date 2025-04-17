@@ -3,10 +3,8 @@ import Card from "./Card";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import { fetchProducts } from "../store/productSlice";
-import { Product } from "../Types/Product.types";
 import LoadingSpinner from "./Loader";
 
-const IMAGE_URL = "http://localhost:13374";
 const Allproduct: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { products, loading, error } = useSelector(
@@ -17,15 +15,9 @@ const Allproduct: React.FC = () => {
     dispatch(fetchProducts());
   }, [dispatch]);
 
-  //console.log(products);
+// console.log(products);
 
-  // Helper function to safely get the first image URL
-  const getFirstImageUrl = (product: Product) => {
-    if (!product.productUrl || product.productUrl.length === 0) {
-      return ""; // Return empty string or a placeholder image URL
-    }
-    return `${IMAGE_URL}${product.productUrl[0].url}`;
-  };
+
 
   return (
     <div className="md:px-24 sm:px-8 px-4 sm:pt-20 pt-10">
@@ -74,14 +66,15 @@ const Allproduct: React.FC = () => {
           products.map((product) => (
             <Card
               key={product.id} // Add key prop here
+              _id={product._id}
               id={product.id}
-              image={getFirstImageUrl(product)}
+              image={product.productUrl[0]}
               title={product.name}
               originalPrice={product.originalPrice}
               discount={product.discount}
               rating={product.rating}
               reviewCount={product.review}
-              isNew={product.isNew}
+              isNew={product.new}
               imageAlt={product.name}
             />
           ))

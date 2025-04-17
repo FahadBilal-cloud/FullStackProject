@@ -65,12 +65,12 @@ const Table: React.FC<ItemsTableProps> = ({ intialItems }) => {
         <tbody>
           {items.length > 0 ? (
             items.map((item, idx) => (
-              <tr className="bg-white shadow-md" key={item.product.id}>
+              <tr className="bg-white shadow-md" key={item.product._id}>
                 {/* Product Image & Name */}
                 <td className="px-8 py-4 flex items-center gap-6">
                   <div className="relative w-12 h-10">
                     <img
-                      src={item.product.imageUrl}
+                      src={item.product.productUrl}
                       alt="Product"
                       className="w-full h-full object-cover rounded"
                     />
@@ -82,7 +82,7 @@ const Table: React.FC<ItemsTableProps> = ({ intialItems }) => {
                     </button>
                   </div>
 
-                  <span className="font-normal">{item.product.title}</span>
+                  <span className="font-normal">{item.product.name}</span>
                 </td>
 
                 {/* Price */}

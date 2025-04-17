@@ -68,6 +68,9 @@ const CheckOut: React.FC = () => {
           toast.error("Stripe failed to load");
           return;
         }
+        if(!orderId){
+          toast.error("OrderId is required")
+        }
 
         // 3. Create Payment Session
         const paymentResponse = await axios.post(
@@ -156,20 +159,20 @@ const CheckOut: React.FC = () => {
             <div className="space-y-4">
               {cartItems.items.map((item) => (
                 <div
-                  key={item.product.id}
+                  key={item.product._id}
                   className="flex justify-between items-center"
                 >
                   <div className="flex items-center gap-6">
                     <img
-                      src={item.product.imageUrl}
-                      alt={item.product.title}
+                      src={item.product.productUrl}
+                      alt={item.product.name}
                       className="w-12 h-10 ml-2 rounded"
                     />
                     <span className="font-medium text-sm">
-                      {item.product.title}
+                      {item.product.name}
                     </span>
                   </div>
-                  <p className="text-sm font-semibold">${item.price}</p>
+                  <p className="text-sm font-semibold">${item.totalPrice}</p>
                 </div>
               ))}
             </div>

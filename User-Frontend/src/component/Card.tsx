@@ -9,6 +9,7 @@ import { addItemToCart } from "../store/cartSlice";
 import { toast } from "react-toastify";
 
 interface CardProps {
+  _id:string
   id: number;
   image: string;
   title: string;
@@ -26,6 +27,7 @@ interface CardProps {
 }
 
 const Card: React.FC<CardProps> = ({
+  _id,
   id,
   image,
   title,
@@ -77,17 +79,11 @@ const Card: React.FC<CardProps> = ({
       toast.error("You are not loggedIn");
       return;
     }
-    const product = {
-      id,
-      title,
-      imageUrl: image,
-      price: discount > 0 ? discountedPrice : originalPrice,
-    };
 
     dispatch(
       addItemToCart({
         token,
-        product,
+        productId : _id,
         quantity: 1,
       })
     );

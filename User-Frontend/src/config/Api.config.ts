@@ -3,8 +3,9 @@ import { ApiError, SignInResponse, UserData } from "../Types/Auth.types";
 import { SignUpData, SignUpResponse } from "../Types/SignUp.type";
 import { LogoutResponse } from "../Types/LogoutResponse";
 import { UserResponse } from "../Types/User.types";
-import { CartResponse, Product } from "../Types/Cart.types";
+import { CartResponse } from "../Types/Cart.types";
 import { OrderFormData, OrderResponse } from "../Types/Order.types";
+import { ProductResponse } from "../Types/Product.types";
 
 const API_BASE_URL1 = "http://localhost:8000/api/v1"
 
@@ -68,13 +69,24 @@ export const userApi = async (): Promise<UserResponse> => {
     }
 }
 
+//Product 
+
+export const fetchProductsApi = async():Promise<ProductResponse>=>{
+    try {
+        const response = await apiClient.get(`/product/all`)
+        return response.data;
+    } catch (error) {
+        throw await handleApiError(error as ApiError)
+    }
+}
+
 // Cart API
 
-export const addToCartApi = async (token: String, product: Product, quantity: Number):Promise<CartResponse> => {
+export const addToCartApi = async (token: String, productId: string, quantity: Number):Promise<CartResponse> => {
     try {
         const response = await axios.post(
             `${API_BASE_URL1}/cart/add`,
-            { product, quantity },
+            { productId, quantity },
             {
                 headers: {
                     Authorization: `Bearer ${token}`
